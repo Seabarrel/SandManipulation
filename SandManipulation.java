@@ -42,8 +42,8 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		
 		location = player.getLocation();
 		
-		if (!isSand(BlockSource.getEarthSourceBlock(player, sourceRange, ClickType.SHIFT_DOWN))) return;
 		sourceBlock = BlockSource.getEarthSourceBlock(player, sourceRange, ClickType.SHIFT_DOWN);
+		if (!isSand(sourceBlock)) return;
 		focusBlock();
 		start();
 	}
@@ -72,16 +72,13 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		}
 	}
 	
-	public void onSource() {
-		if (isSand(BlockSource.getEarthSourceBlock(player, sourceRange, ClickType.SHIFT_DOWN))) {
-			sourceBlock.setType(sourceType);
-			sourceBlock = BlockSource.getEarthSourceBlock(player, sourceRange, ClickType.SHIFT_DOWN);
-			focusBlock();
-		}
-	}
-	
 	public void removeWithCooldown() {
 		bPlayer.addCooldown("SandManipulation", cooldown);
+		remove();
+	}
+	
+	public void removeWithSource() {
+		sourceBlock.setType(sourceType);
 		remove();
 	}
 	

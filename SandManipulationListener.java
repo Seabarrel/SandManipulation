@@ -49,7 +49,8 @@ public class SandManipulationListener implements Listener {
 		if (bPlayer.getBoundAbilityName().equalsIgnoreCase("SandManipulation")) {
 			
 			if (CoreAbility.hasAbility(event.getPlayer(), SandManipulation.class)) {
-				CoreAbility.getAbility(event.getPlayer(), SandManipulation.class).onSource();
+				CoreAbility.getAbility(event.getPlayer(), SandManipulation.class).removeWithSource();
+				new SandManipulation(event.getPlayer());
 			} else {
 				new SandManipulation(event.getPlayer());
 			}
