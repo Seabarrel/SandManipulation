@@ -48,8 +48,12 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	private boolean blindness;
 	@Attribute("BLINDNESS_DURATION")
 	private long blindnessDuration;
+	@Attribute("BURST_COOLDOWN")
+	private long burstCooldown;
 	@Attribute("AMOUNT")
 	private int amount;
+	@Attribute("VELOCITY")
+	private int velocity;
 	
 	private Block block;
 	private TempBlock sourceBlock;
@@ -84,7 +88,9 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		blindness = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Blindness");
 		blindnessDuration = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration");
 		
+		burstCooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown");
 		amount = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks");
+		velocity = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity");
 		
 		if (prepare()) {
 			start();
@@ -117,12 +123,6 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			return;
 		}
 		
-		if (!player.isSneaking()) {
-			removeWithCooldown();
-			return;
-		}
-		
-		
 		HashSet<Material> ignoredMaterials = getTransparentMaterialSet();
 		ignoredMaterials.add(Material.SAND);
 		
@@ -138,6 +138,11 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		location = this.location.clone().add(direction);
 		
 		if (location.distanceSquared(player.getLocation()) > range * range) {
+			removeWithCooldown();
+			return;
+		}
+		
+		if (!player.isSneaking()) {
 			removeWithCooldown();
 			return;
 		}
@@ -219,7 +224,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			int x;
 			for (x = 0 ; x < amount ; x++) {
 				fb = location.getWorld().spawnFallingBlock(location, shootType.createBlockData());
-				fb.setVelocity(new Vector(direction.getX() * Math.random(), direction.getY() * Math.random(), direction.getZ() *  Math.random()));
+				fb.setVelocity(getRandomVelocity(player.getLocation().getDirection()));
 				fb.setDropItem(false);
 				
 				if (burstBlocks == null) {
@@ -230,20 +235,31 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 
 		} else {
 
-			bPlayer.addCooldown(this, cooldown);
-			remove();
+			bPlayer.addCooldown(this, burstCooldown);
+			player.sendMessage(burstBlocks.size() + "");
 			
 		}
 	}
 	
+	public Vector getRandomVelocity(Vector dir) {
+		double x = (Math.round(Math.random()) * 2 - 1 ) * Math.random() / 2 + dir.getX();
+		double y = (Math.round(Math.random()) * 2 - 1 ) * Math.random() / 2 + dir.getY();
+		double z = (Math.round(Math.random()) * 2 - 1 ) * Math.random() / 2 + dir.getZ();
+		return new Vector(x, y, z).multiply(velocity);
+	}
+	
 	public void onClick() {
+		player.sendMessage(location.getBlock().getType() + "");
 		if (!started) {
 			sourceBlock.revertBlock();
 			sourceBlock = new TempBlock(block, Material.AIR);
 			sourceBlock.setRevertTime(10000);
 			started = true;
 			start = System.currentTimeMillis();
+			
 		} else if (!burst) {
+			
+			//if (!isAir(location.getBlock().getType())) return;
 			burst = true;
 			burstStart = System.currentTimeMillis();
 		}
@@ -342,7 +358,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	
 	@Override
 	public void load() {
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Cooldown", 6000);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Cooldown", 5000);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Range", 20);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.SourceRange", 10);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand", true);
@@ -354,12 +370,12 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Blindness", true);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration", 2000);
 		
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown", 8000);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown", 10000);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks", 10);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage", 1);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand", true);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 2);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 1);
 		ConfigManager.defaultConfig.save();
 		
 		ProjectKorra.plugin.getServer().getPluginManager().registerEvents(new SandManipulationListener(), ProjectKorra.plugin);
