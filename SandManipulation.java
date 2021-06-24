@@ -7,6 +7,7 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
@@ -76,21 +77,22 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		
 		if (bPlayer.isOnCooldown(this)) return;
 		
-		cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.Cooldown");
-		range = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Range");
-		sourceRange = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.SourceRange");
-		createSandOnLand = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand");
-		radius = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius");
-		depth = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth");
-		revertTime = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime");
+		FileConfiguration config = ConfigManager.getConfig();
+		cooldown = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.Cooldown");
+		range = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Range");
+		sourceRange = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.SourceRange");
+		createSandOnLand = config.getBoolean("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand");
+		radius = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius");
+		depth = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth");
+		revertTime = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime");
 		
-		hitDamage = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Damage");
-		blindness = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Blindness");
-		blindnessDuration = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration");
+		hitDamage = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Damage");
+		blindness = config.getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Blindness");
+		blindnessDuration = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration");
 		
-		burstCooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown");
-		amount = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks");
-		velocity = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity");
+		burstCooldown = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown");
+		amount = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks");
+		velocity = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity");
 		
 		if (prepare()) {
 			start();
@@ -358,24 +360,25 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	
 	@Override
 	public void load() {
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Cooldown", 5000);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Range", 20);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.SourceRange", 10);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand", true);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius", 5);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth", 2);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime", 10000);
+		FileConfiguration config = ConfigManager.getConfig();
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Cooldown", 5000);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Range", 20);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.SourceRange", 10);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand", true);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius", 5);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth", 2);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime", 10000);
 		
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Damage", 2.0);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Blindness", true);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration", 2000);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Damage", 2.0);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Blindness", true);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration", 2000);
 		
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown", 10000);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks", 10);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage", 1);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand", true);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 1);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown", 10000);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks", 10);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage", 1);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand", true);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 1);
 		ConfigManager.defaultConfig.save();
 		
 		ProjectKorra.plugin.getServer().getPluginManager().registerEvents(new SandManipulationListener(), ProjectKorra.plugin);
