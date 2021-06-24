@@ -12,6 +12,7 @@ import com.projectkorra.projectkorra.BendingPlayer;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 
 public class SandManipulationListener implements Listener {
+	
 	@EventHandler
 	public void onClick(PlayerInteractEvent event) {
 			
@@ -34,7 +35,7 @@ public class SandManipulationListener implements Listener {
 			}
 		}
 		
-		}
+	}
 	
 	@EventHandler
 	public void onClick(PlayerToggleSneakEvent event) {
@@ -56,5 +57,5 @@ public class SandManipulationListener implements Listener {
 			}
 		}
 		
-		}
+	}
 }

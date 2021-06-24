@@ -1,17 +1,25 @@
 package me.seabarrel.SandManipulation;
 
+import java.util.HashSet;
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
+import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.SandAbility;
 import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
-import com.projectkorra.projectkorra.util.BlockSource;
-import com.projectkorra.projectkorra.util.ClickType;
+import com.projectkorra.projectkorra.util.DamageHandler;
 import com.projectkorra.projectkorra.util.TempBlock;
 
 public class SandManipulation extends SandAbility implements AddonAbility{
@@ -22,13 +30,33 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	private int range;
 	@Attribute(Attribute.SELECT_RANGE)
 	private int sourceRange;
+	@Attribute("CREATE_SAND_ON_LAND")
+	private boolean createSandOnLand;
+	@Attribute(Attribute.RADIUS)
+	private int radius;
+	@Attribute("DEPTH")
+	private int depth;
+	@Attribute(Attribute.DURATION)
+	private long revertTime;
+	@Attribute(Attribute.DAMAGE)
+	private double hitDamage;
+	@Attribute("BLINDNESS")
+	private boolean blindness;
+	@Attribute("BLINDNESS_DURATION")
+	private long blindnessDuration;
 	@Attribute("AMOUNT")
 	private int amount;
 	
-	private Block sourceBlock;
+	private Block block;
+	private TempBlock sourceBlock;
 	private Material sourceType;
+	private Material shootType;
 	private Location location;
 	private boolean started;
+	private Location targetLocation;
+	private Vector direction;
+	private long start;
+	private boolean replace;
 	
 	public SandManipulation(Player player) {
 		super(player);
@@ -38,35 +66,138 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.Cooldown");
 		range = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Range");
 		sourceRange = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.SourceRange");
+		createSandOnLand = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand");
+		radius = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius");
+		depth = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth");
+		revertTime = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime");
+		
+		hitDamage = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Damage");
+		blindness = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Blindness");
+		blindnessDuration = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration");
+		
 		amount = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Blocks");
 		
-		location = player.getLocation();
-		
-		sourceBlock = BlockSource.getEarthSourceBlock(player, sourceRange, ClickType.SHIFT_DOWN);
-		if (!isSand(sourceBlock)) return;
-		focusBlock();
-		start();
+		if (prepare()) {
+			start();
+		} else {
+			remove();
+		}
 	}
 	
 	@Override
 	public void progress() {
 		
-		if (this.sourceBlock.getLocation().distanceSquared(this.player.getLocation()) > this.sourceRange * this.sourceRange) {
-			sourceBlock.setType(sourceType);
-			remove();
+		if (sourceBlock.getLocation().distanceSquared(player.getLocation()) > sourceRange * sourceRange && !started) {
+			removeWithSource();
+		}
+		
+		if (!bPlayer.getBoundAbilityName().equalsIgnoreCase(getName())) {
+			if (started) {
+				removeWithCooldown();
+				return;
+			} else {
+				removeWithSource();
+				return;
+			}
 		}
 		
 		if (!started) return;
-		removeWithCooldown();
+		
+		if (!player.isSneaking()) {
+			removeWithCooldown();
+			return;
+		}
+		
+		
+		HashSet<Material> ignoredMaterials = getTransparentMaterialSet();
+		ignoredMaterials.add(Material.SAND);
+		
+		final Entity target = GeneralMethods.getTargetedEntity(player, range);
+		targetLocation = player.getTargetBlock(ignoredMaterials, range).getLocation();
+		
+		if (target != null) {
+			targetLocation = target.getLocation();
+		}
+		
+		
+		direction = GeneralMethods.getDirection(location, targetLocation).normalize();
+		location = this.location.clone().add(direction);
+		
+		if (location.distanceSquared(player.getLocation()) > range * range) {
+			removeWithCooldown();
+			return;
+		}
+		
+		final List<Entity> entities = GeneralMethods.getEntitiesAroundPoint(location, 1);
+		if (entities.size() > 0) {
+			for (final Entity entity : entities) {
+				DamageHandler.damageEntity(entity, hitDamage, this);
+				player.sendMessage(blindness + "" + blindnessDuration + "");
+				if (blindness && target instanceof LivingEntity) {
+					final LivingEntity l = (LivingEntity) entity;
+					l.sendMessage(blindness + "" + blindnessDuration + "");
+					l.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, (int)(blindnessDuration / 1000 * 20), 2));
+				}
+				
+			}
+			removeWithCooldown();
+		}
+		
+		Boolean canMoveHere = false;
+		Boolean replace = true;
+		if (isAir(location.getBlock().getType())
+				|| isSand(location.getBlock().getType())
+					|| isTransparent(location.getBlock())) {
+			if (!isWater(location.getBlock())) canMoveHere = true;
+		}
+		
+		if (!canMoveHere && System.currentTimeMillis() - start < 150
+				&& sourceBlock.getLocation().distanceSquared(location) < 4) {
+			replace = false;
+			canMoveHere = true;
+		}
+		
+		if (isSand(location.getBlock())) replace = false; 
+		
+		if (!canMoveHere && createSandOnLand) createSandSphere(); 
+		
+		if (!canMoveHere) {
+			removeWithCooldown();
+			return;
+		}
+	
+		
+		if (location == sourceBlock.getLocation()) return;
+		
+		if (replace) {
+			TempBlock t = new TempBlock(location.getBlock(), shootType);
+			t.setRevertTime(300);
+		}
+		playSandbendingSound(location);
+		
 		return;
+	}
+	
+	public void createSandSphere() {
+		for (final Location l : GeneralMethods.getCircle(location, radius, depth, false, true, 0)) {
+			final Block b = l.getBlock();
+			if (isEarthbendable(b) || isSandbendable(b)) {
+				
+				if (isBendableEarthTempBlock(b)) TempBlock.get(b).revertBlock();
+				
+				TempBlock sandSphereBlock = new TempBlock(b, shootType);
+				sandSphereBlock.setRevertTime(revertTime);
+			}
+		}
 	}
 	
 	public void onClick() {
 		if (!started) {
-			sourceBlock.setType(sourceType);
-			TempBlock tb = new TempBlock(sourceBlock, Material.AIR);
-			tb.setRevertTime(10000);
+			sourceBlock.revertBlock();
+			sourceBlock = new TempBlock(block, Material.AIR);
+			sourceBlock.setRevertTime(10000);
 			started = true;
+			start = System.currentTimeMillis();
 		} else {
 			
 		}
@@ -78,23 +209,39 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	}
 	
 	public void removeWithSource() {
-		sourceBlock.setType(sourceType);
+		sourceBlock.revertBlock();
 		remove();
 	}
 	
-	private void focusBlock() {
-		if (sourceBlock.getType() == Material.SAND) {
-			sourceType = Material.SAND;
-			sourceBlock.setType(Material.SANDSTONE);
-		} else if (sourceBlock.getType() == Material.RED_SAND) {
+	private boolean prepare() {
+		block = getEarthSourceBlock(sourceRange);
+		if (block == null) return false;
+		if (!isSand(block)) return false;
+		if (block.getType() == Material.SAND) {
+			
+			sourceType = Material.SANDSTONE;
+			shootType = Material.SAND;
+			
+		} else if (block.getType() == Material.RED_SAND) {
+			
+			sourceType = Material.RED_SANDSTONE;
+			shootType = Material.RED_SAND;
+			
+		} else if (block.getType() == Material.RED_SANDSTONE) {
+			
 			sourceType = Material.RED_SAND;
-			sourceBlock.setType(Material.RED_SANDSTONE);
+			shootType = Material.RED_SAND;
+			
 		} else {
-			sourceType = sourceBlock.getType();
-			sourceBlock.setType(Material.SAND);
+			
+			sourceType = Material.SAND;
+			shootType = Material.SAND;
+			
 		}
-
-		this.location = this.sourceBlock.getLocation();
+		
+		location = block.getLocation();
+		sourceBlock = new TempBlock(block, sourceType);
+		return true;
 	}
 	
 	@Override
@@ -114,17 +261,17 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	
 	@Override
 	public String getDescription() {
-		return "sand fluid yeye";
+		return "A sand move using waterbending styles to manipulate the sand in a fluid-ish state!";
 	}
 	
 	@Override
 	public String getInstructions() {
-		return "Tab sneak on a sandbendable block and then hold shift and left click to manipulate the sand.";
+		return "Hold sneak on a sandbendable block and then left click to manipulate the sand. \n(Burst) Left click while manipulating the sand to make the sand blocks fly in random directions creating a burst!";
 	}
 	
 	@Override
 	public boolean isHarmlessAbility() {
-		return true;
+		return false;
 	}
 	
 	@Override
@@ -134,7 +281,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	
 	@Override
 	public boolean isSneakAbility() {
-		return false;
+		return true;
 	}
 	
 	@Override
@@ -152,6 +299,15 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Cooldown", 6000);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Range", 20);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.SourceRange", 10);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandOnLand", true);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRadius", 5);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandDepth", 2);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.CreateSandRevertTime", 10000);
+		
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Damage", 2.0);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Blindness", true);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration", 2000);
+		
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.blocks", 5);
 		ConfigManager.defaultConfig.save();
 		
