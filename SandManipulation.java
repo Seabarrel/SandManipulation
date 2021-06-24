@@ -1,12 +1,15 @@
 package me.seabarrel.SandManipulation;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -18,6 +21,7 @@ import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.SandAbility;
 import com.projectkorra.projectkorra.attribute.Attribute;
+import com.projectkorra.projectkorra.command.Commands;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.DamageHandler;
 import com.projectkorra.projectkorra.util.TempBlock;
@@ -57,6 +61,11 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	private Vector direction;
 	private long start;
 	private boolean replace;
+	private boolean entitiesAreHurt;
+	private boolean burst;
+	private long burstStart;
+	private FallingBlock fb;
+	private ArrayList<FallingBlock> burstBlocks;
 	
 	public SandManipulation(Player player) {
 		super(player);
@@ -75,7 +84,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		blindness = ConfigManager.getConfig().getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Blindness");
 		blindnessDuration = ConfigManager.getConfig().getLong("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration");
 		
-		amount = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Blocks");
+		amount = ConfigManager.getConfig().getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks");
 		
 		if (prepare()) {
 			start();
@@ -86,7 +95,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	
 	@Override
 	public void progress() {
-		
+
 		if (sourceBlock.getLocation().distanceSquared(player.getLocation()) > sourceRange * sourceRange && !started) {
 			removeWithSource();
 		}
@@ -102,6 +111,11 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		}
 		
 		if (!started) return;
+		
+		if (burst) {
+			burst();
+			return;
+		}
 		
 		if (!player.isSneaking()) {
 			removeWithCooldown();
@@ -129,22 +143,28 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		}
 		
 		final List<Entity> entities = GeneralMethods.getEntitiesAroundPoint(location, 1);
-		if (entities.size() > 0) {
-			for (final Entity entity : entities) {
+		for (final Entity entity : entities) {
+			
+			if ((entity instanceof Player && Commands.invincible.contains(entity.getName()))
+					|| entity instanceof ArmorStand || entity instanceof FallingBlock) {
+				
+				continue;
+				
+			} else {
+				entitiesAreHurt = true;
 				DamageHandler.damageEntity(entity, hitDamage, this);
-				player.sendMessage(blindness + "" + blindnessDuration + "");
-				if (blindness && target instanceof LivingEntity) {
-					final LivingEntity l = (LivingEntity) entity;
-					l.sendMessage(blindness + "" + blindnessDuration + "");
+				
+				if (blindness && entity instanceof Player) {
+					final Player l = (Player) entity;
 					l.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, (int)(blindnessDuration / 1000 * 20), 2));
 				}
-				
 			}
-			removeWithCooldown();
+
 		}
+		if (entitiesAreHurt) removeWithCooldown();
 		
-		Boolean canMoveHere = false;
-		Boolean replace = true;
+		boolean canMoveHere = false;
+		boolean replace = true;
 		if (isAir(location.getBlock().getType())
 				|| isSand(location.getBlock().getType())
 					|| isTransparent(location.getBlock())) {
@@ -191,6 +211,31 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		}
 	}
 	
+	public void burst() {
+
+		if (System.currentTimeMillis() - burstStart < 100) return;
+
+		if (burstBlocks == null) {
+			int x;
+			for (x = 0 ; x < amount ; x++) {
+				fb = location.getWorld().spawnFallingBlock(location, shootType.createBlockData());
+				fb.setVelocity(new Vector(direction.getX() * Math.random(), direction.getY() * Math.random(), direction.getZ() *  Math.random()));
+				fb.setDropItem(false);
+				
+				if (burstBlocks == null) {
+					burstBlocks = new ArrayList<FallingBlock>();
+				}
+				burstBlocks.add(fb);
+			}
+
+		} else {
+
+			bPlayer.addCooldown(this, cooldown);
+			remove();
+			
+		}
+	}
+	
 	public void onClick() {
 		if (!started) {
 			sourceBlock.revertBlock();
@@ -198,8 +243,9 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			sourceBlock.setRevertTime(10000);
 			started = true;
 			start = System.currentTimeMillis();
-		} else {
-			
+		} else if (!burst) {
+			burst = true;
+			burstStart = System.currentTimeMillis();
 		}
 	}
 	
@@ -308,7 +354,12 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Blindness", true);
 		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.BlindnessDuration", 2000);
 		
-		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.blocks", 5);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown", 8000);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks", 10);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage", 1);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand", true);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
+		ConfigManager.getConfig().addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 2);
 		ConfigManager.defaultConfig.save();
 		
 		ProjectKorra.plugin.getServer().getPluginManager().registerEvents(new SandManipulationListener(), ProjectKorra.plugin);
