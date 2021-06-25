@@ -11,8 +11,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -158,6 +158,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 				continue;
 				
 			} else {
+				
 				entitiesAreHurt = true;
 				DamageHandler.damageEntity(entity, hitDamage, this);
 				
@@ -226,6 +227,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			int x;
 			for (x = 0 ; x < amount ; x++) {
 				fb = location.getWorld().spawnFallingBlock(location, shootType.createBlockData());
+				fb.setMetadata("sandmanipulation", new FixedMetadataValue(ProjectKorra.plugin, 1));
 				fb.setVelocity(getRandomVelocity(player.getLocation().getDirection()));
 				fb.setDropItem(false);
 				
@@ -236,10 +238,14 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			}
 
 		} else {
-
-			bPlayer.addCooldown(this, burstCooldown);
-			player.sendMessage(burstBlocks.size() + "");
 			
+			if (burstBlocks.size() > 0) {
+				for (FallingBlock fallingBlock : burstBlocks) {
+					
+				}
+			} else {
+				remove();
+			}
 		}
 	}
 	
@@ -251,7 +257,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 	}
 	
 	public void onClick() {
-		player.sendMessage(location.getBlock().getType() + "");
+
 		if (!started) {
 			sourceBlock.revertBlock();
 			sourceBlock = new TempBlock(block, Material.AIR);
@@ -261,9 +267,9 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 			
 		} else if (!burst) {
 			
-			//if (!isAir(location.getBlock().getType())) return;
 			burst = true;
 			burstStart = System.currentTimeMillis();
+			bPlayer.addCooldown(this, burstCooldown);
 		}
 	}
 	
@@ -377,6 +383,8 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks", 10);
 		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage", 1);
 		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand", true);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRadius", 3);
+		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandDepth", 2);
 		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
 		config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 1);
 		ConfigManager.defaultConfig.save();

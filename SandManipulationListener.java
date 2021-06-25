@@ -1,9 +1,12 @@
 package me.seabarrel.SandManipulation;
 
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -57,5 +60,18 @@ public class SandManipulationListener implements Listener {
 			}
 		}
 		
+	}
+	
+	@EventHandler
+	public void blockLand(EntityChangeBlockEvent event) {
+			
+		if (event.getEntityType().equals(EntityType.FALLING_BLOCK)) {
+			FallingBlock fb = (FallingBlock) event.getEntity();
+			if (fb.hasMetadata("sandmanipulation")) {
+				new BurstLand(fb);
+				fb.remove();
+				event.setCancelled(true);
+			}
+		}
 	}
 }
