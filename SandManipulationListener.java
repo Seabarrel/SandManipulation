@@ -33,15 +33,13 @@ public class SandManipulationListener implements Listener {
 			
 			if (CoreAbility.hasAbility(event.getPlayer(), SandManipulation.class)) {
 				CoreAbility.getAbility(event.getPlayer(), SandManipulation.class).onClick();
-			} else {
-				new SandManipulation(event.getPlayer());
 			}
 		}
 		
 	}
 	
 	@EventHandler
-	public void onClick(PlayerToggleSneakEvent event) {
+	public void onShift(PlayerToggleSneakEvent event) {
 			
 		if (!event.isSneaking()) return;
 		
@@ -68,7 +66,7 @@ public class SandManipulationListener implements Listener {
 		if (event.getEntityType().equals(EntityType.FALLING_BLOCK)) {
 			FallingBlock fb = (FallingBlock) event.getEntity();
 			if (fb.hasMetadata("sandmanipulation")) {
-				new BurstLand(fb);
+				if (fb.getMetadata("sandmanipulation").get(0).value().equals(true)) new BurstLand(fb.getLocation(), fb.getBlockData().getMaterial());
 				fb.remove();
 				event.setCancelled(true);
 			}

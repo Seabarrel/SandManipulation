@@ -1,9 +1,9 @@
 package me.seabarrel.SandManipulation;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.FallingBlock;
 
 import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ability.EarthAbility;
@@ -12,30 +12,17 @@ import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.TempBlock;
 
 public class BurstLand {
-
-	private boolean createSand;
-	private long revertTime;
-	private int radius;
-	private int depth;
 	
-	private Location location;
-	private FallingBlock fallingBlock;
+	private FileConfiguration config = ConfigManager.getConfig();
+	private long revertTime = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime");
+	private int radius = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRadius");
+	private int depth = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandDepth");
 	
-	public BurstLand(FallingBlock fb) {
-		
-		FileConfiguration config = ConfigManager.getConfig();
-		createSand = config.getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand");
-		revertTime = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime");
-		radius = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRadius");
-		depth = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandDepth");
-		
-		fallingBlock = fb;
-		location = fb.getLocation();
-		
-		if (createSand) createSandSphere();
+	public BurstLand(Location location, Material material) {
+		createSandSphere(location, material);
 	}
 	
-	public void createSandSphere() {
+	public void createSandSphere(Location location, Material material) {
 		for (final Location l : GeneralMethods.getCircle(location, radius, depth, false, true, 0)) {
 			final Block b = l.getBlock();
 			
@@ -43,7 +30,7 @@ public class BurstLand {
 				
 				if (EarthAbility.isBendableEarthTempBlock(b)) TempBlock.get(b).revertBlock();
 				
-				TempBlock sandSphereBlock = new TempBlock(b, fallingBlock.getBlockData().getMaterial());
+				TempBlock sandSphereBlock = new TempBlock(b, material);
 				sandSphereBlock.setRevertTime(revertTime);
 			}
 		}
