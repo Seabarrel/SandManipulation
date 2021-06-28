@@ -55,7 +55,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
     @Attribute("AMOUNT")
     private int amount;
     @Attribute("VELOCITY")
-    private int velocity;
+    private double velocity;
     @Attribute("BURST_DAMAGE")
     private double burstDamage;
     @Attribute("BURST_BLINDNESS")
@@ -102,7 +102,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 
         burstCooldown = config.getLong("ExtraAbilities.Seabarrel.SandManipulation.Burst.Cooldown");
         amount = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Blocks");
-        velocity = config.getInt("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity");
+        velocity = config.getDouble("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity");
         burstSandOnLand = config.getBoolean("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandOnLand");
 
         burstDamage = config.getDouble("ExtraAbilities.Seabarrel.SandManipulation.Burst.Damage");
@@ -420,12 +420,12 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 
     @Override
     public String getDescription() {
-        return "A sand move using waterbending styles to manipulate the sand in a fluid-ish state!";
+        return "A sand move using waterbending styles to manipulate sand!";
     }
 
     @Override
     public String getInstructions() {
-        return "Hold sneak on a sandbendable block and then left click to manipulate the sand. \n(Burst) Left click while manipulating the sand to make the sand blocks fly in random directions creating a burst!";
+        return "Hold sneak on a sandbendable block and then left click to manipulate the sand while still holding shift. \n(Burst) Left click while manipulating the sand to make the sand blocks fly in random directions creating a burst!";
     }
 
     @Override
@@ -477,7 +477,7 @@ public class SandManipulation extends SandAbility implements AddonAbility{
         config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRadius", 3);
         config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandDepth", 2);
         config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.CreateSandRevertTime", 8000);
-        config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 1);
+        config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Velocity", 0.9);
         config.addDefault("ExtraAbilities.Seabarrel.SandManipulation.Burst.Particles", true);
         ConfigManager.defaultConfig.save();
 
