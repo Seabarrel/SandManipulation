@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.ArmorStand;
@@ -25,7 +27,6 @@ import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.command.Commands;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.DamageHandler;
-import com.projectkorra.projectkorra.util.ParticleEffect;
 import com.projectkorra.projectkorra.util.TempBlock;
 
 public class SandManipulation extends SandAbility implements AddonAbility{
@@ -489,6 +490,13 @@ public class SandManipulation extends SandAbility implements AddonAbility{
 
     @Override
     public void stop() {
-        remove();
+    	for(World world : Bukkit.getWorlds()) {
+    		for (Entity entity : world.getEntities()) {
+    			if (entity instanceof FallingBlock) {
+    				if (entity.hasMetadata("sandmanipulation")) entity.remove();
+    			}
+    		}
+    	}
     }
+    
 }
